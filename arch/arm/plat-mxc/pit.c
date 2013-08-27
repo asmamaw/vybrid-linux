@@ -90,6 +90,12 @@ static cycle_t pit_read_clk(struct clocksource *cs);
 
 static DEFINE_CLOCK_DATA(cd);
 static void __iomem *sched_clock_reg;
+unsigned long long notrace sched_clock(void)
+{
+	cycle_t cyc = sched_clock_reg ? ((u32)~0
+			 - __raw_readl(sched_clock_reg)) : 0;
+	return cyc_to_sched_clock(&cd, cyc, (u32)~0);
+}
 
 static void notrace mvf_update_sched_clock(void)
 {
@@ -211,7 +217,8 @@ static struct irqaction pit_timer_irq = {
 
 static struct clock_event_device clockevent_pit = {
 	.name		= "pit",
-	.features	= CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT,
+	//.features	= CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT,
+	.features	= CLOCK_EVT_FEAT_PERIODIC,
 	.shift		= 32,
 	.set_mode	= pit_set_mode,
 	.set_next_event	= pit_set_next_event,
