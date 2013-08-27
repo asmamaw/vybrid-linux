@@ -1,5 +1,5 @@
 /*
- * Copyright 2004-2006 Freescale Semiconductor, Inc. All Rights Reserved.
+ * Copyright 2004-2012 Freescale Semiconductor, Inc.
  * Copyright (C) 2008 by Sascha Hauer <kernel@pengutronix.de>
  * Copyright (C) 2009 by Jan Weitzel Phytec Messtechnik GmbH,
  *                       <armlinux@phytec.de>
@@ -43,6 +43,21 @@ int mxc_iomux_v3_setup_pad(iomux_v3_cfg_t pad)
 	u32 pad_ctrl_ofs = (pad & MUX_PAD_CTRL_OFS_MASK) >> MUX_PAD_CTRL_OFS_SHIFT;
 	u32 pad_ctrl = (pad & MUX_PAD_CTRL_MASK) >> MUX_PAD_CTRL_SHIFT;
 
+#ifdef CONFIG_SOC_MVFA5
+	u32 mvf_mux_mode;
+
+	if (!pad_ctrl)
+		pad_ctrl = __raw_readl(base + mux_ctrl_ofs) & 0xffff;
+
+	mvf_mux_mode = (mux_mode << 20) | pad_ctrl;
+
+	if (mux_ctrl_ofs)
+		__raw_writel(mvf_mux_mode, base + mux_ctrl_ofs);
+
+	if (sel_input_ofs)
+		__raw_writel(sel_input, base + sel_input_ofs);
+#else
+
 	if (mux_ctrl_ofs)
 		__raw_writel(mux_mode, base + mux_ctrl_ofs);
 
@@ -51,6 +66,7 @@ int mxc_iomux_v3_setup_pad(iomux_v3_cfg_t pad)
 
 	if (!(pad_ctrl & NO_PAD_CTRL) && pad_ctrl_ofs)
 		__raw_writel(pad_ctrl, base + pad_ctrl_ofs);
+#endif
 
 	return 0;
 }
@@ -71,6 +87,21 @@ int mxc_iomux_v3_setup_multiple_pads(iomux_v3_cfg_t *pad_list, unsigned count)
 	return 0;
 }
 EXPORT_SYMBOL(mxc_iomux_v3_setup_multiple_pads);
+
+void mxc_iomux_set_gpr_register(int group, int start_bit, int num_bits, int value)
+{
+	int i = 0;
+	u32 reg;
+	reg = __raw_readl(base + group * 4);
+	while (num_bits) {
+		reg &= ~(1<<(start_bit + i));
+		i++;
+		num_bits--;
+	}
+	reg |= (value << start_bit);
+	__raw_writel(reg, base + group * 4);
+}
+EXPORT_SYMBOL(mxc_iomux_set_gpr_register);
 
 void mxc_iomux_v3_init(void __iomem *iomux_v3_base)
 {

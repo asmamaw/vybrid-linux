@@ -613,19 +613,49 @@ static int mmc_sd_init_uhs_card(struct mmc_card *card)
 	if (err)
 		goto out;
 
-	/* Set bus speed mode of the card */
-	err = sd_set_bus_speed_mode(card, status);
-	if (err)
-		goto out;
-
 	/* Set current limit for the card */
 	err = sd_set_current_limit(card, status);
 	if (err)
 		goto out;
 
+	/* Set bus speed mode of the card */
+	err = sd_set_bus_speed_mode(card, status);
+	if (err)
+		goto out;
+
 	/* SPI mode doesn't define CMD19 */
+#ifdef CONFIG_MMC_SDHCI_ESDHC_IMX
+	if (!mmc_host_is_spi(card->host) &&
+		(card->sd_bus_speed == UHS_SDR104_BUS_SPEED)) {
+		int min, max, avg;
+
+		min = card->host->tuning_min;
+		while (min < card->host->tuning_max) {
+			mmc_set_tuning(card->host, min);
+			if (!mmc_send_tuning_cmd(card))
+				break;
+			min += card->host->tuning_step;
+		}
+
+		max = min + card->host->tuning_step;
+		while (max < card->host->tuning_max) {
+			mmc_set_tuning(card->host, max);
+			if (mmc_send_tuning_cmd(card)) {
+				max -= card->host->tuning_step;
+				break;
+			}
+			max += card->host->tuning_step;
+		}
+
+		avg = (min + max) / 2;
+		mmc_set_tuning(card->host, avg);
+		mmc_send_tuning_cmd(card);
+		mmc_finish_tuning(card->host);
+	}
+#else
 	if (!mmc_host_is_spi(card->host) && card->host->ops->execute_tuning)
 		err = card->host->ops->execute_tuning(card->host);
+#endif
 
 out:
 	kfree(status);
@@ -707,8 +737,9 @@ int mmc_sd_get_cid(struct mmc_host *host, u32 ocr, u32 *cid, u32 *rocr)
 	 * If the host supports one of UHS-I modes, request the card
 	 * to switch to 1.8V signaling level.
 	 */
-	if (host->caps & (MMC_CAP_UHS_SDR12 | MMC_CAP_UHS_SDR25 |
+	if ((host->caps & (MMC_CAP_UHS_SDR12 | MMC_CAP_UHS_SDR25 |
 	    MMC_CAP_UHS_SDR50 | MMC_CAP_UHS_SDR104 | MMC_CAP_UHS_DDR50))
+			&& (host->ocr_avail_sd & MMC_VDD_165_195))
 		ocr |= SD_OCR_S18R;
 
 	/* If the host can supply more than 150mA, XPC should be set to 1. */

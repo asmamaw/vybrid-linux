@@ -44,8 +44,19 @@
 #define UART_PADDR	MX51_UART1_BASE_ADDR
 #endif
 
-#define UART_VADDR	IMX_IO_ADDRESS(UART_PADDR)
+#ifdef CONFIG_ARCH_MX6Q
+#ifdef UART_PADDR
+#error "CONFIG_DEBUG_LL is incompatible with multiple archs"
+#endif
+#define UART_PADDR	MX6Q_UART4_BASE_ADDR
+#endif
 
+#ifdef CONFIG_ARCH_MVF
+#define UART_PADDR      MVF_UART1_BASE_ADDR
+#define UART_VADDR     (0xF2000000 + MVF_UART1_BASE_ADDR)
+#else
+#define UART_VADDR	IMX_IO_ADDRESS(UART_PADDR)
+#endif
 		.macro	addruart, rp, rv
 		ldr	\rp, =UART_PADDR	@ physical
 		ldr	\rv, =UART_VADDR	@ virtual

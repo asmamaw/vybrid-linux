@@ -49,6 +49,56 @@ const struct imx_mxc_pwm_data imx51_mxc_pwm_data[] __initconst = {
 };
 #endif /* ifdef CONFIG_SOC_IMX51 */
 
+#ifdef CONFIG_SOC_IMX53
+const struct imx_mxc_pwm_data imx53_mxc_pwm_data[] __initconst = {
+#define imx53_mxc_pwm_data_entry(_id, _hwid)				\
+	imx_mxc_pwm_data_entry(MX53, _id, _hwid, SZ_16K)
+	imx53_mxc_pwm_data_entry(0, 1),
+	imx53_mxc_pwm_data_entry(1, 2),
+};
+#endif /* ifdef CONFIG_SOC_IMX53 */
+
+#ifdef CONFIG_SOC_IMX6Q
+const struct imx_mxc_pwm_data imx6q_mxc_pwm_data[] __initconst = {
+#define imx6q_mxc_pwm_data_entry(_id, _hwid)				\
+	imx_mxc_pwm_data_entry(MX6Q, _id, _hwid, SZ_16K)
+	imx6q_mxc_pwm_data_entry(0, 1),
+	imx6q_mxc_pwm_data_entry(1, 2),
+	imx6q_mxc_pwm_data_entry(2, 3),
+	imx6q_mxc_pwm_data_entry(3, 4),
+};
+#endif /* ifdef CONFIG_SOC_IMX6Q */
+
+#ifdef CONFIG_SOC_MVFA5
+const struct imx_mxc_pwm_data mvf_mxc_pwm_data[] __initdata = {
+	[0] = {
+		1,
+		MVF_FTM0_BASE_ADDR,
+		SZ_4K,
+		MVF_INT_FLEXTIMER0,
+	},
+	[1] = {
+		2,
+		MVF_FTM1_BASE_ADDR,
+		SZ_4K,
+		MVF_INT_FLEXTIMER1,
+	},
+	[2] = {
+		3,
+		MVF_FTM2_BASE_ADDR,
+		SZ_4K,
+		MVF_INT_FLEXTIMER2,
+	},
+	[3] = {
+		4,
+		MVF_FTM3_BASE_ADDR,
+		SZ_4K,
+		MVF_INT_FLEXTIMER3,
+	},
+};
+
+#endif
+
 struct platform_device *__init imx_add_mxc_pwm(
 		const struct imx_mxc_pwm_data *data)
 {

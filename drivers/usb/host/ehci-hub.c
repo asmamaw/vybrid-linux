@@ -29,6 +29,11 @@
 /*-------------------------------------------------------------------------*/
 #include <linux/usb/otg.h>
 
+#if defined(CONFIG_ARCH_MX6) || defined(CONFIG_ARCH_MVF)
+#define MX6_USB_HOST_HACK
+#define MVF_USB_HOST_HACK
+#include <linux/fsl_devices.h>
+#endif
 #define	PORT_WAKE_BITS	(PORT_WKOC_E|PORT_WKDISC_E|PORT_WKCONN_E)
 
 #ifdef	CONFIG_PM
@@ -822,6 +827,15 @@ static int ehci_hub_control (
 				msleep(5);/* wait to leave low-power mode */
 				spin_lock_irqsave(&ehci->lock, flags);
 			}
+			#ifdef MX6_USB_HOST_HACK
+			{
+				struct fsl_usb2_platform_data *pdata;
+				pdata = hcd->self.controller->platform_data;
+				if (pdata->platform_resume)
+					pdata->platform_resume(pdata);
+			}
+			#endif
+
 			/* resume signaling for 20 msec */
 			temp &= ~(PORT_RWC_BITS | PORT_WAKE_BITS);
 			ehci_writel(ehci, temp | PORT_RESUME, status_reg);
@@ -1062,6 +1076,22 @@ static int ehci_hub_control (
 			temp &= ~PORT_WKCONN_E;
 			temp |= PORT_WKDISC_E | PORT_WKOC_E;
 			ehci_writel(ehci, temp | PORT_SUSPEND, status_reg);
+#ifdef MX6_USB_HOST_HACK
+			{
+				struct fsl_usb2_platform_data *pdata;
+				pdata = hcd->self.controller->platform_data;
+				if (pdata->platform_suspend)
+					pdata->platform_suspend(pdata);
+#ifdef MVF_USB_HOST_HACK
+				/* workaround:
+				 * Toggle HW_USBPHY_PWD to flag controller
+				 * generating LS-SE0/LS-EOP after resume
+				 */
+				if (pdata->platform_resume)
+					pdata->platform_resume(pdata);
+#endif
+			}
+#endif
 			if (hostpc_reg) {
 				spin_unlock_irqrestore(&ehci->lock, flags);
 				msleep(5);/* 5ms for HCD enter low pwr mode */

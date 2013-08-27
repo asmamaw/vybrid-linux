@@ -25,11 +25,29 @@
 #include <linux/mutex.h>
 #include <linux/freezer.h>
 
+#include <linux/fsl_devices.h>
+
 #include <asm/uaccess.h>
 #include <asm/byteorder.h>
 
 #include "usb.h"
 
+#ifdef CONFIG_ARCH_MX6
+#define MX6_USB_HOST_HACK
+
+#include <linux/fsl_devices.h>
+extern void fsl_platform_set_usb_phy_dis(struct fsl_usb2_platform_data *pdata,
+					 bool enable);
+#endif
+#ifdef CONFIG_ARCH_MVF
+#define MVF_USB_HOST_HACK
+#include <linux/fsl_devices.h>
+
+extern void fsl_platform_set_usb0_phy_dis(struct fsl_usb2_platform_data *pdata,
+					 bool enable);
+extern void fsl_platform_set_usb1_phy_dis(struct fsl_usb2_platform_data *pdata,
+					 bool enable);
+#endif
 /* if we are in debug mode, always announce new devices */
 #ifdef DEBUG
 #ifndef CONFIG_USB_ANNOUNCE_NEW_DEVICES
@@ -1654,7 +1672,17 @@ void usb_disconnect(struct usb_device **pdev)
 	usb_set_device_state(udev, USB_STATE_NOTATTACHED);
 	dev_info(&udev->dev, "USB disconnect, device number %d\n",
 			udev->devnum);
-
+#ifdef MVF_USB_HOST_HACK
+	if (udev->speed == USB_SPEED_HIGH && udev->level == 1)
+#ifdef CONFIG_MACH_PCM052
+       {
+               fsl_platform_set_usb0_phy_dis(NULL, 0);
+               fsl_platform_set_usb1_phy_dis(NULL, 0);
+       }
+#else
+		fsl_platform_set_usb_phy_dis(NULL, 0);
+#endif
+#endif
 	usb_lock_device(udev);
 
 	/* Free up all the children before we remove this device */
@@ -2899,7 +2927,17 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 		udev->tt = &hub->tt;
 		udev->ttport = port1;
 	}
- 
+#ifdef MVF_USB_HOST_HACK
+	if (udev->speed == USB_SPEED_HIGH && udev->level == 1)
+#ifdef CONFIG_MACH_PCM052
+       {
+               fsl_platform_set_usb0_phy_dis(NULL, 1);
+               fsl_platform_set_usb1_phy_dis(NULL, 1);
+       }
+#else
+		fsl_platform_set_usb_phy_dis(NULL, 1);
+#endif
+#endif
 	/* Why interleave GET_DESCRIPTOR and SET_ADDRESS this way?
 	 * Because device hardware and firmware is sometimes buggy in
 	 * this area, and this is how Linux has done it for ages.
@@ -3021,6 +3059,19 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 			break;
 		}
 	}
+#ifdef MX6_USB_HOST_HACK
+	{	/*Must enable HOSTDISCONDETECT after second reset*/
+		if ((port1 == 1) && (udev->level == 1)) {
+			if (udev->speed == USB_SPEED_HIGH) {
+				struct device *dev = hcd->self.controller;
+				struct fsl_usb2_platform_data *pdata;
+				pdata = (struct fsl_usb2_platform_data *)
+					 dev->platform_data;
+				fsl_platform_set_usb_phy_dis(pdata, 1);
+			}
+		}
+	}
+#endif
 	if (retval)
 		goto fail;
 
@@ -3158,6 +3209,24 @@ static void hub_port_connect_change(struct usb_hub *hub, int port1,
 		hub->indicator[port1-1] = INDICATOR_AUTO;
 	}
 
+#ifdef MX6_USB_HOST_HACK
+	{
+		struct device *dev = hcd->self.controller;
+		struct fsl_usb2_platform_data *pdata;
+
+		pdata = (struct fsl_usb2_platform_data *)dev->platform_data;
+		if (dev->parent && (hdev->level == 0) && dev->type) {
+			if (port1 == 1 && pdata->init)
+				pdata->init(NULL);
+		}
+		if ((port1 == 1) && (hdev->level == 0)) {
+			if (!(portstatus&USB_PORT_STAT_CONNECTION)) {
+				/* Must clear HOSTDISCONDETECT when disconnect*/
+				fsl_platform_set_usb_phy_dis(pdata, 0);
+			}
+		}
+	}
+#endif
 #ifdef	CONFIG_USB_OTG
 	/* during HNP, don't repeat the debounce */
 	if (hdev->bus->is_b_host)

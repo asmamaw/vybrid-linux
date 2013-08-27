@@ -107,6 +107,22 @@ config FSL_DMA
 	  The Elo is the DMA controller on some 82xx and 83xx parts, and the
 	  Elo Plus is the DMA controller on 85xx and 86xx parts.
 
+config MVF_EDMA
+	tristate "Faraday eDMA support"
+	default y
+	depends on ARCH_MVF
+	select DMA_ENGINE
+	help
+	  Enable support for Faraday eDMA controller. For example
+	  used by Faraday SAI Audio device driver.
+
+config MVF_EDMA_TEST
+    	tristate "MVF eDMA simple test module"
+        depends on MVF_EDMA
+	default m
+	help
+	  This is simple eDMA test module.
+
 config MPC512X_DMA
 	tristate "Freescale MPC512x built-in DMA engine support"
 	depends on PPC_MPC512x || PPC_MPC831x
@@ -140,6 +156,19 @@ config MX3_IPU_IRQS
 	  Out of 137 interrupt sources on i.MX31 IPU only very few are used.
 	  To avoid bloating the irq_desc[] array we allocate a sufficient
 	  number of IRQ slots and map them dynamically to specific sources.
+
+config MXC_PXP
+    bool "MXC PxP support"
+    select DMA_ENGINE
+
+config MXC_PXP_V2
+    bool "MXC PxP V2 support"
+    select DMA_ENGINE
+
+config MXC_PXP_CLIENT_DEVICE
+    bool "MXC PxP Client Device"
+    default y
+    depends on MXC_PXP || MXC_PXP_V2
 
 config TXX9_DMAC
 	tristate "Toshiba TXx9 SoC DMA support"
@@ -215,11 +244,11 @@ config PCH_DMA
 
 config IMX_SDMA
 	tristate "i.MX SDMA support"
-	depends on ARCH_MX25 || ARCH_MX3 || ARCH_MX5
+	depends on ARCH_MX25 || ARCH_MX3 || ARCH_MX5 || ARCH_MX6
 	select DMA_ENGINE
 	help
 	  Support the i.MX SDMA engine. This engine is integrated into
-	  Freescale i.MX25/31/35/51 chips.
+	  Freescale i.MX25/31/35/51/6x chips.
 
 config IMX_DMA
 	tristate "i.MX DMA support"
@@ -231,7 +260,7 @@ config IMX_DMA
 
 config MXS_DMA
 	bool "MXS DMA support"
-	depends on SOC_IMX23 || SOC_IMX28
+	depends on SOC_IMX23 || SOC_IMX28 || SOC_IMX6Q
 	select DMA_ENGINE
 	help
 	  Support the MXS DMA engine. This engine including APBH-DMA

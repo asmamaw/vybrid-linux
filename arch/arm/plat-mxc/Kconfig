@@ -48,12 +48,37 @@ config ARCH_MX51
 	help
 	  This enables support for systems based on the Freescale i.MX51 family
 
+config ARCH_MX6
+	bool "MX6-based"
+	select CPU_V7
+	help
+	  This enable support for systems based on the Freescale i.MX 6 Series family
+
+config ARCH_MVF
+	bool "MVF-based"
+	select CPU_V7
+	help
+	  This enable support for systems based on the Freescale MVF Series family
+
 endchoice
 
 source "arch/arm/mach-imx/Kconfig"
 source "arch/arm/mach-mx5/Kconfig"
+source "arch/arm/mach-mx6/Kconfig"
+source "arch/arm/mach-mvf/Kconfig"
 
 endmenu
+## Freescale private USB driver support
+# set if we need the 1504 transceiver
+config ISP1504_MXC
+	bool
+	default y
+
+# set if we need the UTMI transceiver
+config UTMI_MXC
+	bool
+	default y
+	depends on ARCH_MX25 || ARCH_MX35 || ARCH_MX37 || ARCH_MX5
 
 config MXC_IRQ_PRIOR
 	bool "Use IRQ priority"
@@ -76,6 +101,14 @@ config MXC_PWM
 	select HAVE_PWM
 	help
 	  Enable support for the i.MX PWM controller(s).
+
+config MXC_PWM_CPWM
+	bool "Center-Aligned PWM mode"
+	depends on MXC_PWM && ARCH_MVF
+	help
+	  Select Center-aligned PWM mode, otherwise the PWM will be
+	  Edge-alinged(EPWM).
+	  Say Y here if Center-aligned PWM signal required.
 
 config MXC_DEBUG_BOARD
 	bool "Enable MXC debug board(for 3-stack)"
@@ -100,10 +133,24 @@ config MXC_USE_EPIT
 	  uses the same clocks as the GPT. Anyway, on some systems the GPT
 	  may be in use for other purposes.
 
+config HAVE_PIT
+	bool
+
+config MXC_USE_PIT
+	bool "Use PIT"
+	depends on HAVE_PIT
+	help
+	  Use PIT as the system timer on systems that have it.
+	  Anyway, on some systems the GPT may be in use such as mvf platform.
+
+
 config MXC_ULPI
 	bool
 
 config ARCH_HAS_RNGA
+	bool
+
+config ARCH_HAS_RNGC
 	bool
 
 config IMX_HAVE_IOMUX_V1
@@ -120,6 +167,22 @@ config ARCH_MXC_AUDMUX_V2
 
 config IRAM_ALLOC
 	bool
+        default y
 	select GENERIC_ALLOCATOR
+
+config CLK_DEBUG
+	bool "clock debug information export to user space"
+	depends on PM_DEBUG && DEBUG_FS
+	default n
+	help
+	  export clk debug information to user space
+
+config DMA_ZONE_SIZE
+        int "DMA memory zone size"
+        range 0 184
+        default 24
+        help
+          This is the size in MB for the DMA zone. The DMA zone is used for
+          dedicated memory for large contiguous video buffers
 
 endif

@@ -40,6 +40,7 @@ static enum power_supply_property max8903_charger_props[] = {
 	POWER_SUPPLY_PROP_STATUS, /* Charger status output */
 	POWER_SUPPLY_PROP_ONLINE, /* External power source */
 	POWER_SUPPLY_PROP_HEALTH, /* Fault or OK */
+	POWER_SUPPLY_PROP_CAPACITY,
 };
 
 static int max8903_get_property(struct power_supply *psy,
@@ -184,7 +185,7 @@ static __devinit int max8903_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct max8903_pdata *pdata = pdev->dev.platform_data;
 	int ret = 0;
-	int gpio;
+	int gpio = 0;
 	int ta_in = 0;
 	int usb_in = 0;
 
@@ -211,9 +212,14 @@ static __devinit int max8903_probe(struct platform_device *pdev)
 
 			gpio = pdata->dcm; /* Output */
 			gpio_set_value(gpio, ta_in);
+		} else if (pdata->dok && gpio_is_valid(pdata->dok) &&
+			   pdata->dcm_always_high) {
+			ta_in = pdata->dok; /* PULL_UPed Interrupt */
+			ta_in = gpio_get_value(gpio) ? 0 : 1;
 		} else {
 			dev_err(dev, "When DC is wired, DOK and DCM should"
-					" be wired as well.\n");
+					" be wired as well."
+					" or set dcm always high\n");
 			ret = -EINVAL;
 			goto err;
 		}

@@ -133,6 +133,16 @@ config SPI_COLDFIRE_QSPI
 	  This driver can also be built as a module.  If so, the module
 	  will be called coldfire_qspi.
 
+config SPI_MVF_QSPI
+	tristate "Freescale Faraday QSPI controller"
+	depends on ARCH_MVF
+	help
+	  This enables support for the Faraday QSPI controller in master
+	  mode.
+
+	  This driver can also be built as a module.  If so, the module
+	  will be called spi_mvf_qspi.
+
 config SPI_DAVINCI
 	tristate "Texas Instruments DaVinci/DA8x/OMAP-L/AM1x SoC SPI controller"
 	depends on SPI_MASTER && ARCH_DAVINCI
@@ -182,7 +192,7 @@ config SPI_IMX_VER_0_7
 	def_bool y if ARCH_MX25 || SOC_IMX35 || SOC_IMX51 || SOC_IMX53
 
 config SPI_IMX_VER_2_3
-	def_bool y if SOC_IMX51 || SOC_IMX53
+	def_bool y if SOC_IMX51 || SOC_IMX53 || SOC_IMX6Q
 
 config SPI_IMX
 	tristate "Freescale i.MX SPI controllers"
@@ -192,6 +202,21 @@ config SPI_IMX
 	help
 	  This enables using the Freescale i.MX SPI controllers in master
 	  mode.
+
+config SPI_MVF
+	tristate "Freescale Faraday DSPI controllers"
+	depends on ARCH_MVF
+	default y if IMX_HAVE_PLATFORM_MVF_SPI
+	help
+	  This enables using the Freescale Faraday SPI controllers in master
+	  mode.
+
+config SPI_MVF_DSPI_EDMA
+	boolean "Faraday DSPI driver uses eDMA"
+	depends on ARCH_MVF && SPI_MVF && MVF_EDMA
+	default n
+	help
+          Say "yes" if you want DSPI driver to use eDMA dor transfers.
 
 config SPI_LM70_LLP
 	tristate "Parallel port adapter for LM70 eval board (DEVELOPMENT)"
